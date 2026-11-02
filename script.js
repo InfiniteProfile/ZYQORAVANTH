@@ -90,12 +90,11 @@ kv([['ID','#'+p.id],['Age',p.age+' years'],['Gender',p.gender],['Species',p.spec
 '<div class="nav"><button class="btn" data-a="go" data-i="'+dec(p.id)+'"'+(p.id==='1'?' disabled':'')+'>← Previous identity</button><button class="btn" data-a="go" data-i="'+inc(p.id)+'">Next identity →</button><button class="btn pri" data-a="ex" data-i="'+p.id+'">Explore from here</button></div></div>'}
 
 /* ================= INFINITE FEED (generation scheduler + windowed DOM) ================= */
-const $=id=>document.getElementById(id),feed=$('feed'),st=$('st'),dv=$('dv'),qi=$('q'),T=document.title;
+const $=id=>document.getElementById(id),feed=$('feed'),dv=$('dv'),qi=$('q'),T=document.title;
 const P=30,FIRST=360,BATCH=300,AHEAD=260,CAP=840; // page size, first load, batch size, runway that triggers next batch, max mounted cards
 let pages=[],mounted=new Set(),mcount=0,cur=0,epoch=0,total=0,Q,nextId,scanned=0,buf=[],batchLeft=0,busy=false,lastFlush=0;
 
-function status(){const n=total.toLocaleString();
-st.textContent=Q.k==='text'?n+' matches · '+scanned.toLocaleString()+' identities scanned · still searching the endless universe':Q.k==='id'?'Exact ID #'+Q.id+' · the universe continues from here · '+n+' identities forged':n+' identities forged · and counting'}
+function status(){}
 function mount(pg){if(pg.m)return;let ids=pg.ids;if(!ids){ids=[];let s=pg.start;for(let i=0;i<pg.n;i++){ids.push(s);s=inc(s)}}
 let h='';for(let i=0;i<ids.length;i++)h+=card(gen(ids[i]));
 pg.el.style.height='';pg.el.innerHTML=h;pg.m=1;mounted.add(pg.i);mcount+=pg.n}
@@ -127,7 +126,9 @@ ensure(total-pages[v].o)}
 function reset(q,user){epoch++;feed.textContent='';pages=[];mounted.clear();mcount=0;cur=0;total=0;buf=[];scanned=0;busy=false;
 Q=parseQ(q);nextId=Q.k==='id'?Q.id:'1';batchLeft=FIRST;if(user)scrollTo(0,0);status();run(Q.k!=='text')}
 // Never lose generation: scroll, IntersectionObserver, and a timer all drive the same sweep.
-let tk=0;addEventListener('scroll',()=>{if(!tk){tk=1;(window.requestAnimationFrame||setTimeout)(()=>{tk=0;sweep()})}},{passive:true});
+const top=$('top');let tk=0,ly=0;addEventListener('scroll',()=>{if(!tk){tk=1;(window.requestAnimationFrame||setTimeout)(()=>{tk=0;const y=pageYOffset,d=y-ly;
+if(y<60||d<-6||document.activeElement===qi)top.classList.remove('off');else if(d>6)top.classList.add('off');
+if(Math.abs(d)>6||y<60)ly=y;sweep()})}},{passive:true});
 setInterval(()=>{if(!document.hidden)sweep()},700);
 try{if('IntersectionObserver'in window)new IntersectionObserver(()=>sweep(),{rootMargin:'0px 0px 3000px 0px'}).observe($('sent'))}catch(e){}
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{let h=0,n=0;mounted.forEach(k=>{h+=pages[k].el.offsetHeight;n+=pages[k].n});if(!n)return;const a=h/n;pages.forEach(p=>{if(!p.m)p.el.style.height=Math.round(a*p.n)+'px'});sweep()},200)});
